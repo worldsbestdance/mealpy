@@ -1,3 +1,4 @@
+import click
 import getpass
 import json
 import time
@@ -96,17 +97,41 @@ class MealPal():
         raise NotImplementedError()
 
 
-SCHEDULER = BlockingScheduler()
-EMAIL = input('Enter email: ')
-PASSWORD = getpass.getpass('Enter password: ')
+# SCHEDULER = BlockingScheduler()
+# EMAIL = input('Enter email: ')
+# PASSWORD = getpass.getpass('Enter password: ')
+EMAIL = 'a'
+PASSWORD = 'b'
 
 
-@SCHEDULER.scheduled_job('cron', hour=16, minute=59, second=58)
-def execute_reserve_meal():
+@click.group()
+def cli_group():
+    pass
+
+
+@cli_group.command('save_user', short_help='Save username and password details into keyring for use by mealpy.')
+def save_user():
+    # update and store email and password here?
+    pass
+
+
+@cli_group.command('reserve', short_help='Reserve a meal on MealPal.')
+@click.argument('restaurant')
+@click.argument('time')
+@click.argument('city')
+def reserve(restaurant, time, city):
+    execute_reserve_meal(restaurant, time, city)
+
+cli = click.CommandCollection(sources=[cli_group])
+
+
+# @SCHEDULER.scheduled_job('cron', hour=16, minute=59, second=58)
+def execute_reserve_meal(restaurant, time, city):
     mealpal = MealPal()
 
     # Try to login
     while True:
+        # TODO: Get email and password from keyring etc.
         status_code = mealpal.login(EMAIL, PASSWORD)
         if status_code == 200:
             print('Logged In!')
@@ -118,9 +143,9 @@ def execute_reserve_meal():
     while True:
         try:
             status_code = mealpal.reserve_meal(
-                '12:15pm-12:30pm',
-                restaurant_name='Coast Poke Counter - Battery St.',
-                city_name='San Francisco',
+                time,
+                restaurant_name=restaurant,
+                city_name=city,
             )
             if status_code == 200:
                 print('Reservation success!')
@@ -136,4 +161,4 @@ def execute_reserve_meal():
 
 
 if __name__ == '__main__':
-    execute_reserve_meal()
+    cli()
